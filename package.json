@@ -1,0 +1,17 @@
+{
+  "name": "self-destruct-o",
+  "version": "1.0.0",
+  "description": "Lambda for one-time secret sharing",
+  "repository": "",
+  "author": "Mark Steele <mark@control-alt-del.org>",
+  "license": "MIT",
+  "dependencies": {
+    "uuid": "^3.3.2"
+  },
+  "devDependencies": {
+    "aws-sdk": "^2.12.0",
+    "babel-preset-es2015": "^6.24.1",
+    "chai": "^4.0.2",
+    "serverless-plugin-optimize": "^1.0.0-rc.15"
+  }
+}

@@ -1,0 +1,82 @@
+service: self-destruct-o
+provider:
+  name: aws
+  runtime: nodejs6.10
+  stage: ${opt:stage, self:custom.defaultStage}
+  environment:
+    DYNAMODB_TABLE: ${self:service}-${opt:stage, self:provider.stage}
+    ENCRYPTION_KEY_ID: ${self:custom.kms_key.${opt:region, self:provider.region}.${self:provider.stage}}
+    ENV: ${opt:stage, self:provider.stage}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - kms:Decrypt
+        - kms:GenerateDataKey
+      Resource: "arn:aws:kms:${opt:region, self:provider.region}:*:key/${self:custom.kms_key.${opt:region, self:provider.region}.${self:provider.stage}}"
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
+custom:
+  defaultStage: dev
+  kms_key:
+    "us-east-1":
+      dev: ${ssm:/self-destruct-o/kms-key-id~true}
+
+resources:  
+  Resources:
+    secretsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.DYNAMODB_TABLE}
+        AttributeDefinitions:
+          - AttributeName: secretId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: secretId
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TimeToLiveSpecification:
+          AttributeName: 'ttl'
+          Enabled: true
+        SSESpecification:
+          SSEEnabled: true
+
+functions:
+  index:
+    optimize:
+      includePaths:
+        - ui/index.html
+    handler: index.index
+    events:
+      - http:
+          path: /
+          method: get
+          cors: true
+  create:
+    handler: index.create
+    events:
+      - http:
+          path: /
+          method: post
+          cors: true
+  get:
+    handler: index.get
+    events:
+      - http:
+          path: /{id}
+          method: get
+          cors: true
+
+plugins:
+  - serverless-plugin-optimize
+
+package:
+  individually: true

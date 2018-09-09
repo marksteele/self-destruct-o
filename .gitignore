@@ -1,0 +1,7 @@
+*~
+coverage/
+node_modules/
+.serverless
+.npmignore
+.nyc_output*
+.dynamodb*
