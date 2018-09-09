@@ -12,7 +12,7 @@ The master key is stored in AWS KMS and only accessible to the root AWS account,
 
 # Installation
 
-First, you need to provision a KMS key.
+First, you need to provision a KMS key (which will cost you 1$/month) or use the default Lambda key (log into the console and find the key id).
 
 ```
 aws kms create-key --region us-east-1 --description 'self-destruct-o'
