@@ -26,7 +26,8 @@ custom:
   defaultStage: dev
   kms_key:
     "us-east-1":
-      dev: ${ssm:/self-destruct-o/kms-key-id~true}
+      dev: "foo"
+      prod: ${ssm:/self-destruct-o/kms-key-id~true}
 
 resources:  
   Resources:

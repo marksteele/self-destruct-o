@@ -12,13 +12,17 @@ The master key is stored in AWS KMS and only accessible to the root AWS account,
 
 # Installation
 
-First, you need to provision a KMS key (which will cost you 1$/month) or use the default Lambda key (log into the console and find the key id).
+First, you need to provision a KMS key (which will cost you 1$/month)
+
+Creating a KMS key:
 
 ```
 aws kms create-key --region us-east-1 --description 'self-destruct-o'
 ```
 
-Take note of that KSM key id. Setup a SSM parameter for the key id:
+Take note of that KSM key id. 
+
+Setup a SSM parameter for the key id:
 
 ```
 aws ssm put-parameter --region us-east-1 \
@@ -42,3 +46,7 @@ sls deploy -s dev --region us-east-1
 This command should output the three API gateway endpoints. To hit the one with the UI, look for the GET endpoint that doesn't have a parameter.
 
 Enjoy your newly created password sharing system.
+
+# Key management
+
+To rotate the key, simply create a new key in KMS, and update the SSM parameter used by the Lambdas. Old secrets will still work as long as the KMS key is ok. Once you've updated SSM, schedule the old key to be deleted.
