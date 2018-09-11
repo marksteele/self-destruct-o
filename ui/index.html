@@ -5,39 +5,21 @@
         <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
 
         </head>
-        <h1>Self-destruct-o</h1>
-        <p>Welcome to Self-destruct-o, a one-time password sharing system. Use the form below to either submit a new secret or enter a secret id to retrieve a secret.</p>
+        <h1>Secret Sharing</h1>
+        <h2>Create a new secret</h2>
         <form action="#">
-            New secret <b>or</b> secret id: <input type=text id=secret> <br>
-            <input type='button' value='Create a new secret' id="newSecret" /> or  <input type='button' value='Retrieve a secret' id="getSecret" />
+            New secret:<br>
+            <textarea id=newSecret rows=20 cols=100></textarea> <br>
+            <input type='button' value='Create a new secret' id="newSecretBtn" />            <input type=reset>
+
+        </form>
+        <h2>Retrieve a secret</h2>
+        <form action="#">
+            Enter secret UUID:<br>
+            <input type=text id=getSecret><br>
+            <input type='button' value='Retrieve a secret' id="getSecretBtn" />
             <input type=reset>
         </form>
-        <h2>How does it work?</h2>
-        <h3>Creating secrets</h3>
-        <ul>
-            <li>Secrets are posted to an AWS API Gateway HTTPS endpoint</li>
-            <li>API Gateway invokes a Lambda function</li>
-            <li>The Lambda function invokes KMS to generate a new encryption key (data key), which is encrypted with a KMS key</li>
-            <li>The Lambda function encrypts the secret with the plaintext of the data key</li>
-            <li>The Lambda generates a unique identifier for the secret (v4 UUID)</li>
-            <li>The Lambda saves the encrypted data key along with the encrypted data in a DynamoDB table (which uses at-rest encryption)</li>
-            <li>Newly saved items automatically expire out of DynamoDB after 7 days (using DynamoDB's time-to-live feature)</li>
-            <li>The Lambda returns the UUID</li>  
-            <li>The browser shows a dialog with a link to retrieve the secret.</li>      
-        </ul>
-        <h3>Retrieving secrets</h3>
-        <ul>
-            <li>A secret id is entered in the form and the form is submitted</li>
-            <li>The secret is sent to an API Gateway endpoint which invokes a Lambda function</li>
-            <li>When a secret UUID is passed into the Lambda, it retrieves the record from DynamoDB, then deletes it</li>
-            <li>The Lambda function calls KMS to decrypt the data key</li>
-            <li>The Lambda uses the data key plaintet to decrypt the secret</li>
-            <li>The secret is then returned to the client</li>        
-        </ul>
-        <h2>Run your own Self-destruct-o</h2>
-        <p>The code for Self-destruct-o can be found here: <a href="https://github.com/marksteele/self-destruct-o">https://github.com/marksteele/self-destruct-o</a></p>
-        <p>Blog post about <a href="https://www.control-alt-del.org/post/one-time-password-sharing-securely/">Self-destruct-o</a></p>
-
         <div id=newSecretDialog title="New secret">
             <div id="newSecretUuid"></div>
             <div id="newSecretUrl"></div>
@@ -49,23 +31,26 @@
             <button id="copySecret">Copy Secret</button>
         </div>
         <script language="javascript" type="text/javascript">
-            $('#newSecret').click( function() {
-                $.post(location.protocol+'//'+location.hostname+(location.port ? ':'+location.port: '')+window.location.pathname, '{"secret":"'+$('#secret').val()+'"}', function(data) {
+            const APIUrl = location.protocol+'//'+location.hostname+(location.port ? ':'+location.port: '')+window.location.pathname;
+            $('#newSecretBtn').click( function() {
+                var req = {
+                    "secret": $('#newSecret').val()
+                };
+                $.post(APIUrl, JSON.stringify(req), function(data) {
                     $('#newSecretUuid').html('Your secret ID is: '+data.uuid);
-                    $('#secret').val('');
+                    $('#newSecret').val('');
                     $('#copySecretUrl').click(function() {
-                        copyTextToClipboard(location.protocol+'//'+location.hostname+(location.port ? ':'+location.port: '')+window.location.pathname+'?secret='+data.uuid);
+                        copyTextToClipboard(APIUrl+'?secret='+data.uuid);
                         $("#newSecretDialog" ).dialog("close");
                     });
                     $( "#newSecretDialog" ).dialog("open");
                 });
             });
             
-            $('#getSecret').click( function() {
-                if ($('#secret').val()) {
-                    $.get(location.protocol+'//'+location.hostname+(location.port ? ':'+location.port: '')+window.location.pathname+$('#secret').val(), function(data) {
-                    $('#secret').val('');
-
+            $('#getSecretBtn').click( function() {
+                if ($('#getSecret').val()) {
+                    $.get(APIUrl+$('#getSecret').val(), function(data) {
+                    $('#getSecret').val('');
                     $( "#getSecretDialog" ).dialog("open");
                     $('#copySecret').click(function() {
                         copyTextToClipboard(data.secret);
@@ -117,8 +102,9 @@
                 });
                 var secret = getUrlVars()['secret'];
                 if (secret !== undefined) {
-                    $('#secret').val(secret);
+                    $('#getSecret').val(secret);
                     window.history.replaceState({}, document.title, window.location.pathname);
+
                 }
             });
         </script>
