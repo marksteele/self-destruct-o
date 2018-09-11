@@ -5,7 +5,7 @@
         <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
 
         </head>
-        <h1>Secret Sharing</h1>
+        <h1>self-destruct-o</h1>
         <h2>Create a new secret</h2>
         <form action="#">
             New secret:<br>
@@ -30,6 +30,11 @@
             <div id="newSecretUrl"></div>
             <button id="copySecret">Copy Secret</button>
         </div>
+        <h2>About</h2>
+        <p>Author: Mark Steele (mark@control-alt-del.org)</p>
+        <p>The code for Self-destruct-o can be found <a href="https://github.com/marksteele/self-destruct-o">here</a></p>
+        <p>Blog post about <a href="https://www.control-alt-del.org/post/one-time-password-sharing-securely/">Self-destruct-o</a></p>
+
         <script language="javascript" type="text/javascript">
             const APIUrl = location.protocol+'//'+location.hostname+(location.port ? ':'+location.port: '')+window.location.pathname;
             $('#newSecretBtn').click( function() {

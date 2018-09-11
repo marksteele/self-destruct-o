@@ -25,7 +25,7 @@ provider:
 custom:
   defaultStage: dev
   kms_key:
-    "ca-central-1":
+    "us-east-1":
       dev: "foo"
       prod: ${ssm:/self-destruct-o/kms-key-id~true}
 
