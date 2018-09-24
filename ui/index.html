@@ -2,6 +2,8 @@
     <head>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
         <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/rollups/aes.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/rollups/pbkdf2.js"></script>
         <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
 
         </head>
@@ -10,6 +12,7 @@
         <form action="#">
             New secret:<br>
             <textarea id=newSecret rows=20 cols=100></textarea> <br>
+            Optional passphrase: (will be required for decryption) <input type=text id=newpassphrase><Br>
             <input type='button' value='Create a new secret' id="newSecretBtn" />            <input type=reset>
 
         </form>
@@ -17,6 +20,7 @@
         <form action="#">
             Enter secret UUID:<br>
             <input type=text id=getSecret><br>
+            Optional passphrase: (required if one was used for encrypting) <input type=text id=getpassphrase><Br>
             <input type='button' value='Retrieve a secret' id="getSecretBtn" />
             <input type=reset>
         </form>
@@ -28,22 +32,73 @@
         </div>
         <div id=getSecretDialog title="Secret retrieved">
             <div id="newSecretUrl"></div>
+            <div id="secretText"></div>
             <button id="copySecret">Copy Secret</button>
         </div>
+        <h2>Notes</h2>
+        <p>If you provide a passphrase when creating a secret, the data will be encrypted with AES-256 in CBC mode in your browser prior to being sent to the server. This is the most secure mode, as the server will never see the passphrase.</p>
         <h2>About</h2>
         <p>Author: Mark Steele (mark@control-alt-del.org)</p>
         <p>The code for Self-destruct-o can be found <a href="https://github.com/marksteele/self-destruct-o">here</a></p>
         <p>Blog post about <a href="https://www.control-alt-del.org/post/one-time-password-sharing-securely/">Self-destruct-o</a></p>
 
         <script language="javascript" type="text/javascript">
+            const keySize = 256;
+            const ivSize = 128;
+            const iterations = 100;
+
+            function encrypt (msg, pass) {
+                const salt = CryptoJS.lib.WordArray.random(128/8);           
+                const key = CryptoJS.PBKDF2(pass, salt, {
+                    keySize: keySize/32,
+                    iterations: iterations
+                });
+
+                var iv = CryptoJS.lib.WordArray.random(128/8);
+                
+                var encrypted = CryptoJS.AES.encrypt(msg, key, { 
+                    iv: iv, 
+                    padding: CryptoJS.pad.Pkcs7,
+                    mode: CryptoJS.mode.CBC
+                    
+                });
+                
+                // salt, iv will be hex 32 in length
+                // append them to the ciphertext for use  in decryption
+                var transitmessage = salt.toString()+ iv.toString() + encrypted.toString();
+                return transitmessage;
+            }
+
+            function decrypt (transitmessage, pass) {
+                var salt = CryptoJS.enc.Hex.parse(transitmessage.substr(0, 32));
+                var iv = CryptoJS.enc.Hex.parse(transitmessage.substr(32, 32))
+                var encrypted = transitmessage.substring(64);           
+                var key = CryptoJS.PBKDF2(pass, salt, {
+                    keySize: keySize/32,
+                    iterations: iterations
+                    });
+
+                var decrypted = CryptoJS.AES.decrypt(encrypted, key, { 
+                    iv: iv, 
+                    padding: CryptoJS.pad.Pkcs7,
+                    mode: CryptoJS.mode.CBC
+                    
+                })
+                return decrypted.toString(CryptoJS.enc.Utf8);
+            }
+
             const APIUrl = location.protocol+'//'+location.hostname+(location.port ? ':'+location.port: '')+window.location.pathname;
             $('#newSecretBtn').click( function() {
                 var req = {
-                    "secret": $('#newSecret').val()
+                    "secret": $('#newpassphrase').val() ? 
+                        encrypt($('#newSecret').val(),  $('#newpassphrase').val()) : 
+                        $('#newSecret').val()
                 };
                 $.post(APIUrl, JSON.stringify(req), function(data) {
                     $('#newSecretUuid').html('Your secret ID is: '+data.uuid);
                     $('#newSecret').val('');
+                    $('#newpassphrase').val('');
+
                     $('#copySecretUrl').click(function() {
                         copyTextToClipboard(APIUrl+'?secret='+data.uuid);
                         $("#newSecretDialog" ).dialog("close");
@@ -57,8 +112,13 @@
                     $.get(APIUrl+$('#getSecret').val(), function(data) {
                     $('#getSecret').val('');
                     $( "#getSecretDialog" ).dialog("open");
+                    const secret = $('#getpassphrase').val() ? 
+                            decrypt(data.secret, $('#getpassphrase').val()) : 
+                            data.secret;
+                    $('#secretText').html(secret);
                     $('#copySecret').click(function() {
-                        copyTextToClipboard(data.secret);
+                        copyTextToClipboard(secret);
+                        $('#getpassphrase').val('');
                         $( "#getSecretDialog" ).dialog("close");
                     });
                     });
