@@ -10,6 +10,8 @@ Individual items are encrypted using envelope encryption with per-item encryptio
 
 The master key is stored in AWS KMS and only accessible to the root AWS account, and the Lambda function that reads from DynamoDB.
 
+Users can optionally provide a passphrase. When using a passphrase, an encryption key is derived from the passphrase using PBDKF2, and the secret is encrypted with AES-256 in CBC mode (in the browser) prior to being sent to the backend.
+
 # Installation
 
 First, you need to provision a KMS key (which will cost you 1$/month)
